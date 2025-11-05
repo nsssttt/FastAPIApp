@@ -14,17 +14,10 @@ from app.models.schemas import (
 
 
 class HotelService:
-    """
-    Hotel service with business logic.
-    This service is injected via dependency injection.
-    """
-
     def __init__(self, db: Session):
         self.db = db
 
     def create_room(self, room_data: RoomCreate) -> RoomResponse:
-        """Create a new room."""
-        # Check if room number already exists
         existing_room = self.db.query(Room).filter(Room.number == room_data.number).first()
         if existing_room:
             raise HTTPException(
@@ -44,7 +37,6 @@ class HotelService:
         return self._room_to_response(room)
 
     def get_room_by_number(self, room_number: int) -> Optional[Room]:
-        """Get room by number."""
         return self.db.query(Room).filter(Room.number == room_number).first()
 
     def get_all_rooms(
@@ -52,7 +44,6 @@ class HotelService:
         category: Optional[RoomCategory] = None,
         status_filter: Optional[RoomStatus] = None
     ) -> List[RoomResponse]:
-        """Get all rooms with optional filters."""
         query = self.db.query(Room)
 
         if category:
@@ -64,7 +55,6 @@ class HotelService:
         return [self._room_to_response(room) for room in rooms]
 
     def get_free_rooms(self, category: Optional[RoomCategory] = None) -> List[RoomResponse]:
-        """Get free rooms, optionally filtered by category."""
         query = self.db.query(Room).filter(Room.status == RoomStatus.FREE)
 
         if category:
@@ -73,10 +63,7 @@ class HotelService:
         rooms = query.all()
         return [self._room_to_response(room) for room in rooms]
 
-    # Booking operations
     def create_booking(self, booking_data: BookingCreate) -> BookingResponse:
-        """Create a new booking."""
-        # Get room
         room = self.get_room_by_number(booking_data.room_number)
         if not room:
             raise HTTPException(
@@ -84,14 +71,12 @@ class HotelService:
                 detail=f"Room number {booking_data.room_number} not found"
             )
 
-        # Check if room is free
         if room.status != RoomStatus.FREE:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Room {booking_data.room_number} is not available (status: {room.status.value})"
             )
 
-        # Create booking
         booking = Booking(
             room_id=room.id,
             guest_name=booking_data.guest_name,
@@ -99,7 +84,6 @@ class HotelService:
             end_date=booking_data.end_date
         )
 
-        # Update room status
         room.status = RoomStatus.BOOKED
 
         self.db.add(booking)
@@ -109,7 +93,6 @@ class HotelService:
         return self._booking_to_response(booking, room)
 
     def cancel_booking(self, booking_id: int) -> dict:
-        """Cancel a booking."""
         booking = self.db.query(Booking).filter(Booking.id == booking_id).first()
         if not booking:
             raise HTTPException(
@@ -124,17 +107,14 @@ class HotelService:
                 detail=f"Room not found"
             )
 
-        # Update room status to free
         room.status = RoomStatus.FREE
 
-        # Delete booking
         self.db.delete(booking)
         self.db.commit()
 
         return {"message": f"Booking {booking_id} cancelled successfully", "room_number": room.number}
 
     def get_all_bookings(self) -> List[BookingResponse]:
-        """Get all active bookings."""
         bookings = self.db.query(Booking).all()
         result = []
         for booking in bookings:
@@ -143,10 +123,7 @@ class HotelService:
                 result.append(self._booking_to_response(booking, room))
         return result
 
-    # Rental operations
     def create_rental(self, rental_data: RentalCreate) -> RentalResponse:
-        """Create a new rental (rent out a room)."""
-        # Get room
         room = self.get_room_by_number(rental_data.room_number)
         if not room:
             raise HTTPException(
@@ -154,14 +131,12 @@ class HotelService:
                 detail=f"Room number {rental_data.room_number} not found"
             )
 
-        # Check if room is free
         if room.status != RoomStatus.FREE:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Room {rental_data.room_number} is not available (status: {room.status.value})"
             )
 
-        # Create rental
         rental = Rental(
             room_id=room.id,
             guest_name=rental_data.guest_name,
@@ -169,7 +144,6 @@ class HotelService:
             end_date=rental_data.end_date
         )
 
-        # Update room status
         room.status = RoomStatus.RENTED
 
         self.db.add(rental)
@@ -179,7 +153,6 @@ class HotelService:
         return self._rental_to_response(rental, room)
 
     def complete_rental(self, rental_id: int) -> dict:
-        """Complete a rental."""
         rental = self.db.query(Rental).filter(Rental.id == rental_id).first()
         if not rental:
             raise HTTPException(
@@ -194,14 +167,11 @@ class HotelService:
                 detail=f"Room not found"
             )
 
-        # Calculate total cost
         days = rental.duration_days
         total_cost = days * room.price
 
-        # Update room status to free
         room.status = RoomStatus.FREE
 
-        # Delete rental
         self.db.delete(rental)
         self.db.commit()
 
@@ -213,7 +183,6 @@ class HotelService:
         }
 
     def get_all_rentals(self) -> List[RentalResponse]:
-        """Get all active rentals."""
         rentals = self.db.query(Rental).all()
         result = []
         for rental in rentals:
@@ -222,9 +191,7 @@ class HotelService:
                 result.append(self._rental_to_response(rental, room))
         return result
 
-    # Statistics
     def get_statistics(self) -> StatisticsResponse:
-        """Get hotel statistics."""
         total = self.db.query(Room).count()
         free = self.db.query(Room).filter(Room.status == RoomStatus.FREE).count()
         booked = self.db.query(Room).filter(Room.status == RoomStatus.BOOKED).count()
@@ -242,9 +209,7 @@ class HotelService:
             occupancy_rate=round(occupancy_rate, 2)
         )
 
-    # Helper methods
     def _room_to_response(self, room: Room) -> RoomResponse:
-        """Convert Room ORM model to RoomResponse schema."""
         return RoomResponse(
             id=room.id,
             number=room.number,
@@ -254,7 +219,6 @@ class HotelService:
         )
 
     def _booking_to_response(self, booking: Booking, room: Room) -> BookingResponse:
-        """Convert Booking ORM model to BookingResponse schema."""
         estimated_cost = booking.duration_days * room.price
         return BookingResponse(
             id=booking.id,
@@ -268,7 +232,6 @@ class HotelService:
         )
 
     def _rental_to_response(self, rental: Rental, room: Room) -> RentalResponse:
-        """Convert Rental ORM model to RentalResponse schema."""
         total_cost = rental.duration_days * room.price
         return RentalResponse(
             id=rental.id,
