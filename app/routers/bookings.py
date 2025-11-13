@@ -39,7 +39,7 @@ def delete_booking(
 ):
     """
     Delete a booking by ID.
-    - **booking_id**: ID of the booking to cancel
+    - **booking_id**: ID of the booking to delete
     """
     service = HotelService(db)
     return service.delete_booking(booking_id)
