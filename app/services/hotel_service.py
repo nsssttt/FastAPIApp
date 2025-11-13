@@ -112,7 +112,7 @@ class HotelService:
         self.db.delete(booking)
         self.db.commit()
 
-        return {"message": f"Booking {booking_id} cancelled successfully", "room_number": room.number}
+        return {"message": f"Booking {booking_id} deleted successfully", "room_number": room.number}
 
     def get_all_bookings(self) -> List[BookingResponse]:
         bookings = self.db.query(Booking).all()
