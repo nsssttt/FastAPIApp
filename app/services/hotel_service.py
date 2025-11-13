@@ -92,7 +92,7 @@ class HotelService:
 
         return self._booking_to_response(booking, room)
 
-    def cancel_booking(self, booking_id: int) -> dict:
+    def delete_booking(self, booking_id: int) -> dict:
         booking = self.db.query(Booking).filter(Booking.id == booking_id).first()
         if not booking:
             raise HTTPException(

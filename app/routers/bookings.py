@@ -33,13 +33,13 @@ def get_all_bookings(db: Session = Depends(get_db)):
 
 
 @router.delete("/{booking_id}", status_code=status.HTTP_200_OK)
-def cancel_booking(
+def delete_booking(
     booking_id: int,
     db: Session = Depends(get_db)
 ):
     """
-    Cancel a booking by ID.
+    Delete a booking by ID.
     - **booking_id**: ID of the booking to cancel
     """
     service = HotelService(db)
-    return service.cancel_booking(booking_id)
+    return service.delete_booking(booking_id)
